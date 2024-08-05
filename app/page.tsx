@@ -1,113 +1,487 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+import React, { useState, useEffect } from 'react';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  TextField,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  IconButton,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  useMediaQuery,
+  useTheme,
+  List,
+  ListItem,
+  ListItemText,
+} from '@mui/material';
+import { Add, Edit, Delete, Search, Restaurant } from '@mui/icons-material';
+import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { db } from '../firebase'; // Adjust the path as needed
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+const genAI = new GoogleGenerativeAI('AIzaSyCbYe-M5c_qOmiTr4K9UlqJe4o004F3EUE');
+const auth = getAuth();
 
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
+const KitchenPantryApp = () => {
+  const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [recipeOpen, setRecipeOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [pantryItems, setPantryItems] = useState([]);
+  const [newItem, setNewItem] = useState({ name: '', quantity: '', unit: '', category: '' });
+  const [editItem, setEditItem] = useState(null);
+  const [suggestedRecipes, setSuggestedRecipes] = useState([]);
+  const [user, setUser] = useState(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
+  useEffect(() => {
+    const fetchPantryItems = async (currentUser) => {
+      if (currentUser) {
+        const itemsCollection = collection(db, 'pantryItems');
+        const itemSnapshot = await getDocs(itemsCollection);
+        const itemList = itemSnapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+          .filter(item => item.userId === currentUser.uid);
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
+        setPantryItems(itemList);
+      } else {
+        setPantryItems([]);
+      }
+    };
 
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      fetchPantryItems(currentUser);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleClickOpen = () => setOpen(true);
+  const handleClose = () => {
+    setOpen(false);
+    setNewItem({ name: '', quantity: '', unit: '', category: '' });
+  };
+
+  const handleEditOpen = (item) => {
+    setEditItem(item);
+    setEditOpen(true);
+  };
+
+  const handleEditClose = () => {
+    setEditOpen(false);
+    setEditItem(null);
+  };
+
+  const handleInputChange = (e, itemType) => {
+    const { id, value } = e.target;
+    if (itemType === 'new') {
+      setNewItem({ ...newItem, [id]: value });
+    } else if (itemType === 'edit') {
+      setEditItem({ ...editItem, [id]: value });
+    }
+  };
+
+  const handleAddItem = async () => {
+    try {
+      const itemWithUserId = { ...newItem, userId: user.uid };
+      const docRef = await addDoc(collection(db, 'pantryItems'), itemWithUserId);
+      setPantryItems([...pantryItems, { id: docRef.id, ...itemWithUserId }]);
+      handleClose();
+    } catch (error) {
+      console.error("Error adding document: ", error);
+    }
+  };
+
+  const handleUpdateItem = async () => {
+    try {
+      const itemRef = doc(db, 'pantryItems', editItem.id);
+      const updatedItem = { ...editItem, userId: user.uid };
+      await updateDoc(itemRef, updatedItem);
+      setPantryItems(pantryItems.map(item => item.id === editItem.id ? updatedItem : item));
+      handleEditClose();
+    } catch (error) {
+      console.error("Error updating document: ", error);
+    }
+  };
+
+  const handleDeleteItem = async (id) => {
+    try {
+      await deleteDoc(doc(db, 'pantryItems', id));
+      setPantryItems(pantryItems.filter(item => item.id !== id));
+    } catch (error) {
+      console.error("Error removing document: ", error);
+    }
+  };
+
+  const suggestRecipes = async () => {
+    const itemNames = pantryItems.map(item => item.name).join(', ');
+    const prompt = `Suggest 3 recipes I can make with some or all of these ingredients: ${itemNames}. For each recipe, provide a title and a brief description.`;
+
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      let text = response.text();
+      text = text.replace(/\*/g, '');
+      const recipes = text.split(/\d\./).filter(Boolean).map(recipe => recipe.trim());
+      setSuggestedRecipes(recipes);
+      setRecipeOpen(true);
+    } catch (error) {
+      console.error("Error suggesting recipes:", error);
+    }
+  };
+
+  const filteredItems = pantryItems.filter(item =>
+    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
-}
+  const handleSignUp = async () => {
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      setAuthOpen(false);
+    } catch (error) {
+      console.error("Error signing up:", error);
+    }
+  };
+
+  const handleSignIn = async () => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      setAuthOpen(false);
+    } catch (error) {
+      console.error("Error signing in:", error);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center" style={{display: "grid", placeItems:"center", marginTop:"20vh"}}>
+        <Button
+          variant="contained"
+          onClick={() => setAuthOpen(true)}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          Sign In / Sign Up
+        </Button>
+
+        <Dialog open={authOpen} onClose={() => setAuthOpen(false)}>
+          <DialogTitle>{isSignUp ? "Sign Up" : "Sign In"}</DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              id="email"
+              label="Email Address"
+              type="email"
+              fullWidth
+              variant="outlined"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <TextField
+              margin="dense"
+              id="password"
+              label="Password"
+              type="password"
+              fullWidth
+              variant="outlined"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setAuthOpen(false)}>Cancel</Button>
+            <Button onClick={isSignUp ? handleSignUp : handleSignIn}>
+              {isSignUp ? "Sign Up" : "Sign In"}
+            </Button>
+          </DialogActions>
+          <DialogActions>
+            <Button onClick={() => setIsSignUp(!isSignUp)}>
+              {isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up"}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <AppBar position="static" className="bg-white shadow-md">
+        <Toolbar>
+          <Typography variant="h6" className="text-gray-800 flex-grow mr-64" style={{marginLeft:"1rem"}}>
+            Kitchen Pantry
+          </Typography>
+          <div style={{marginRight:"2rem"}}></div>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={handleClickOpen}
+            className="bg-blue-600 hover:bg-blue-700 mr-2"
+          >
+            Add Item
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Restaurant />}
+            onClick={suggestRecipes}
+            className="bg-green-600 hover:bg-green-700"
+            style={{marginLeft:"1rem"}}
+          >
+            Suggest Recipes
+          </Button>
+        </Toolbar>
+      </AppBar>
+
+      <main style={{margin:"2rem"}} className="container mx-auto py-8 px-4">
+        <Paper className="mb-6 p-4" style={{marginBottom:"2rem"}}>
+          <TextField
+            fullWidth
+            variant="outlined"
+            placeholder="Search pantry items..."
+            InputProps={{
+              startAdornment: <Search className="text-gray-400 mr-2" />,
+            }}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="bg-white"
+          />
+        </Paper>
+
+        <TableContainer component={Paper} className="shadow-lg">
+          <Table>
+            <TableHead className="bg-gray-50">
+              <TableRow>
+                <TableCell>Item Name</TableCell>
+                <TableCell>Quantity</TableCell>
+                <TableCell>Unit</TableCell>
+                <TableCell>Category</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredItems.map((item) => (
+                <TableRow key={item.id} hover>
+                  <TableCell>{item.name}</TableCell>
+                  <TableCell>{item.quantity}</TableCell>
+                  <TableCell>{item.unit}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={item.category}
+                      color="primary"
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <IconButton size="small" className="text-blue-600" onClick={() => handleEditOpen(item)}>
+                      <Edit fontSize="small" />
+                    </IconButton>
+                    <IconButton size="small" className="text-red-600" onClick={() => handleDeleteItem(item.id)}>
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </main>
+
+      {/* Add Item Dialog */}
+      <Dialog
+        fullScreen={fullScreen}
+        open={open}
+        onClose={handleClose}
+        aria-labelledby="add-dialog-title"
+      >
+        <DialogTitle id="add-dialog-title">
+          {"Add New Pantry Item"}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            id="name"
+            label="Item Name"
+            type="text"
+            fullWidth
+            variant="outlined"
+            className="mb-4"
+            value={newItem.name}
+            onChange={(e) => handleInputChange(e, 'new')}
+          />
+          <TextField
+            margin="dense"
+            id="quantity"
+            label="Quantity"
+            type="number"
+            fullWidth
+            variant="outlined"
+            className="mb-4"
+            value={newItem.quantity}
+            onChange={(e) => handleInputChange(e, 'new')}
+          />
+          <TextField
+            margin="dense"
+            id="unit"
+            label="Unit"
+            type="text"
+            fullWidth
+            variant="outlined"
+            className="mb-4"
+            value={newItem.unit}
+            onChange={(e) => handleInputChange(e, 'new')}
+          />
+          <TextField
+            margin="dense"
+            id="category"
+            label="Category"
+            type="text"
+            fullWidth
+            variant="outlined"
+            className="mb-4"
+            value={newItem.category}
+            onChange={(e) => handleInputChange(e, 'new')}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleAddItem} color="primary" variant="contained">
+            Add Item
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Item Dialog */}
+      <Dialog
+        fullScreen={fullScreen}
+        open={editOpen}
+        onClose={handleEditClose}
+        aria-labelledby="edit-dialog-title"
+      >
+        <DialogTitle id="edit-dialog-title">
+          {"Edit Pantry Item"}
+        </DialogTitle>
+        <DialogContent>
+          {editItem && (
+            <>
+              <TextField
+                autoFocus
+                margin="dense"
+                id="name"
+                label="Item Name"
+                type="text"
+                fullWidth
+                variant="outlined"
+                className="mb-4"
+                value={editItem.name}
+                onChange={(e) => handleInputChange(e, 'edit')}
+              />
+              <TextField
+                margin="dense"
+                id="quantity"
+                label="Quantity"
+                type="number"
+                fullWidth
+                variant="outlined"
+                className="mb-4"
+                value={editItem.quantity}
+                onChange={(e) => handleInputChange(e, 'edit')}
+              />
+              <TextField
+                margin="dense"
+                id="unit"
+                label="Unit"
+                type="text"
+                fullWidth
+                variant="outlined"
+                className="mb-4"
+                value={editItem.unit}
+                onChange={(e) => handleInputChange(e, 'edit')}
+              />
+              <TextField
+                margin="dense"
+                id="category"
+                label="Category"
+                type="text"
+                fullWidth
+                variant="outlined"
+                className="mb-4"
+                value={editItem.category}
+                onChange={(e) => handleInputChange(e, 'edit')}
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleEditClose} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleUpdateItem} color="primary" variant="contained">
+            Update Item
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Suggested Recipes Dialog */}
+      <Dialog
+        fullScreen={fullScreen}
+        open={recipeOpen}
+        onClose={() => setRecipeOpen(false)}
+        aria-labelledby="recipe-dialog-title"
+      >
+        <DialogTitle id="recipe-dialog-title">
+          {"Suggested Recipes"}
+        </DialogTitle>
+        <DialogContent>
+          <List>
+            {suggestedRecipes.map((recipe, index) => (
+              <ListItem key={index}>
+                <ListItemText primary={recipe} />
+              </ListItem>
+            ))}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRecipeOpen(false)} color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </div>
+  );
+};
+
+export default KitchenPantryApp;
